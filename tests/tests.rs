@@ -10,13 +10,21 @@ fn test_get_entries() -> Result<(), String> {
     let cpp_project_path = solve_path("res/cpp_project");
     let cmake_build_path = solve_path("res/cpp_project/build");
     let cpp_project_include_path = solve_path("res/cpp_project/src");
+    let clang_path = which::which("clang++").map_err(|e| format!("failed to get clang++ path: {}", e))?;
 
-    std::process::Command::new("cmake")
+    let cmake_output = std::process::Command::new("cmake")
         .arg("-S").arg(cpp_project_path.clone())
         .arg("-B").arg(cmake_build_path.clone())
         .arg("-D").arg("CMAKE_CXX_COMPILER=clang++")
         .output()
         .map_err(|e| format!("cmake exeuction failed: {}", e))?;
+
+    assert!(
+        cmake_output.status.success(),
+        "output: {}\n\nerror:{}",
+        String::from_utf8(cmake_output.stdout).expect("failed to read stdout of cmake"),
+        String::from_utf8(cmake_output.stderr).expect("failed to read stderr of cmake")
+    );
 
     let pattern = solve_path("**/*.h").to_str().unwrap().into();
 
@@ -26,7 +34,7 @@ fn test_get_entries() -> Result<(), String> {
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/a.h"),
             vec![
-                "/usr/bin/clang++".into(),
+                format!("{}", clang_path.display()),
                 "--driver-mode=g++".into(),
                 format!("-I{}", cpp_project_include_path.display())
             ]
@@ -35,7 +43,7 @@ fn test_get_entries() -> Result<(), String> {
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/b.h"),
             vec![
-                "/usr/bin/clang++".into(),
+                format!("{}", clang_path.display()),
                 "--driver-mode=g++".into(),
                 format!("-I{}", cpp_project_include_path.display())
             ]
@@ -44,7 +52,7 @@ fn test_get_entries() -> Result<(), String> {
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/c.h"),
             vec![
-                "/usr/bin/clang++".into(),
+                format!("{}", clang_path.display()),
                 "--driver-mode=g++".into(),
                 format!("-I{}", cpp_project_include_path.display())
             ]
@@ -53,7 +61,7 @@ fn test_get_entries() -> Result<(), String> {
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/d.h"),
             vec![
-                "/usr/bin/clang++".into(),
+                format!("{}", clang_path.display()),
                 "--driver-mode=g++".into(),
                 format!("-I{}", cpp_project_include_path.display())
             ]
@@ -62,7 +70,7 @@ fn test_get_entries() -> Result<(), String> {
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/main.cpp"),
             vec![
-                "/usr/bin/clang++".into(),
+                format!("{}", clang_path.display()),
                 "--driver-mode=g++".into(),
                 format!("-I{}", cpp_project_include_path.display())
             ]

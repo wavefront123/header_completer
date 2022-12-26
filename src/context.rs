@@ -1,28 +1,24 @@
 use std::path::PathBuf;
 
-use super::{command_table::CompileCommandsTable, command_table_entry::CompileCommandsTableEntry};
+use crate::compilation_database::{CompilationDatabase, CompilationDatabaseEntry};
+
+use super::command_table::CompileCommandsTable;
 
 pub struct Context<'c> {
-    index: &'c clang::Index<'c>,
-    database: clang::CompilationDatabase
+    index: &'c clang::Index<'c>
 }
 
 impl<'c> Context<'c> {
-    pub fn new(index: &'c clang::Index, path: PathBuf) -> Result<Self, String> {
-        let database = clang::CompilationDatabase::from_directory(path).map_err(|_| "failed load Compilation Database")?;
-        Ok(Self { index, database })
+    pub fn new(index: &'c clang::Index) -> Result<Self, String> {
+        Ok(Self { index })
     }
 
-    pub fn build_command_table(&self) -> Result<CompileCommandsTable, String> {
+    pub fn build_command_table(&self, database: CompilationDatabase) -> Result<CompileCommandsTable, String> {
         let mut compile_commands_table = CompileCommandsTable::new();
 
-        for command in self.database.get_all_compile_commands().get_commands() {
-            let directory = command.get_directory();
-            let file_path = command.get_filename();
-            let arguments = command.get_arguments();
-
-            let entry = CompileCommandsTableEntry::new(directory.clone(), file_path, arguments.clone());
-            compile_commands_table.insert(command.get_filename(), entry);
+        for entry in database {
+            let entry = entry.skip_unnecessary_commands();
+            compile_commands_table.insert(entry.get_file().clone(), entry);
         }
 
         Ok(compile_commands_table)
@@ -36,7 +32,7 @@ impl<'c> Context<'c> {
             let file = entry.get_file();
             let command = entry.get_command();
 
-            let translation_unit = self.parse(file.clone(), command.clone())?;
+            let translation_unit = self.parse(file.clone(), command.split(" ").map(String::from).collect())?;
             let include_file_paths = Self::extract_includes(translation_unit.get_entity());
             for include in include_file_paths {
                 if let Some(pattern) = &pattern {
@@ -44,7 +40,8 @@ impl<'c> Context<'c> {
                         continue;
                     }
                 }
-                let entry = CompileCommandsTableEntry::new(directory.clone(), include.clone(), command.clone());
+                let entry = CompilationDatabaseEntry::new(directory.clone(), include.clone(), command.clone());
+                let entry = entry.skip_unnecessary_commands();
                 completed_command_table.insert(include, entry);
             }
         }

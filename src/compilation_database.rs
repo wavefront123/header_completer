@@ -1,15 +1,17 @@
 use std::{path::PathBuf, cmp::Ordering};
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, serde::Serialize)]
-pub struct CompileCommandsTableEntry {
+#[derive(Clone, Debug, Eq, Ord, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CompilationDatabaseEntry {
     directory: PathBuf,
     file: PathBuf,
-    command: Vec<String>
+    command: String
 }
 
-impl CompileCommandsTableEntry {
-    pub fn new(directory: PathBuf, file: PathBuf, command: Vec<String>) -> Self {
-        let command = Self::skip_unnecessary_commands(command);
+pub type CompilationDatabase = Vec<CompilationDatabaseEntry>;
+
+impl CompilationDatabaseEntry {
+
+    pub fn new(directory: PathBuf, file: PathBuf, command: String) -> Self {
         Self {
             directory,
             file,
@@ -19,14 +21,15 @@ impl CompileCommandsTableEntry {
 
     pub fn get_directory(&self) -> &PathBuf { return &self.directory; }
     pub fn get_file(&self) -> &PathBuf { return &self.file; }
-    pub fn get_command(&self) -> &Vec<String> { return &self.command; }
+    pub fn get_command(&self) -> &String { return &self.command; }
 
-    fn skip_unnecessary_commands(commands: Vec<String>) -> Vec<String> {
+    pub fn skip_unnecessary_commands(self) -> Self {
         let mut result = vec![];
         let mut pos = 0;
+        let commands: Vec<&str> = self.command.split(" ").collect();
         while pos < commands.len() {
             let command = commands.get(pos).unwrap();
-            match command.as_str() {
+            match *command {
                 "-c" | "-o" => {
                     // skip
                     pos += 1;
@@ -37,11 +40,15 @@ impl CompileCommandsTableEntry {
             }
             pos += 1;
         }
-        result
+        Self {
+            directory: self.directory,
+            file: self.file,
+            command: commands.join(" "),
+        }
     }
 }
 
-impl PartialOrd for CompileCommandsTableEntry {
+impl PartialOrd for CompilationDatabaseEntry {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let file_order = self.file.partial_cmp(&other.file);
         let command_order = self.command.partial_cmp(&other.command);

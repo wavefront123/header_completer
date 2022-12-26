@@ -1,10 +1,10 @@
-use std::{collections::HashMap, path::PathBuf, fs::OpenOptions, io::BufWriter};
+use std::{collections::HashMap, path::PathBuf};
 
-use super::command_table_entry::CompileCommandsTableEntry;
+use crate::compilation_database::CompilationDatabaseEntry;
 
 #[derive(Clone)]
 pub struct CompileCommandsTable {
-    table: HashMap<PathBuf, Vec<CompileCommandsTableEntry>>
+    table: HashMap<PathBuf, Vec<CompilationDatabaseEntry>>
 }
 
 impl CompileCommandsTable {
@@ -14,7 +14,7 @@ impl CompileCommandsTable {
         }
     }
 
-    pub fn insert(&mut self, path: PathBuf, entry: CompileCommandsTableEntry) {
+    pub fn insert(&mut self, path: PathBuf, entry: CompilationDatabaseEntry) {
         match self.table.get_mut(&path) {
             Some(entries) => {
                 entries.push(entry)
@@ -27,21 +27,7 @@ impl CompileCommandsTable {
         }
     }
 
-    pub fn save(&self, path: PathBuf) {
-        let all_entries = self.get_entries();
-
-        let file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(path)
-            .unwrap();
-        let writer = BufWriter::new(file);
-
-        serde_json::to_writer_pretty(writer, &all_entries).unwrap();
-    }
-
-    pub fn get_entries(&self) -> Vec<&CompileCommandsTableEntry> {
+    pub fn get_entries(&self) -> Vec<&CompilationDatabaseEntry> {
         let mut all_entries = vec![];
 
         for entries in self.table.values() {

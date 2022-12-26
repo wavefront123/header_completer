@@ -1,21 +1,21 @@
-use header_completer::{*, command_table_entry::CompileCommandsTableEntry};
+use header_completer::{build_command_table, compilation_database::{CompilationDatabaseEntry, CompilationDatabase}};
 
-extern crate header_completer;
 
 #[test]
 fn test_get_entries() -> Result<(), String> {
     let current_dir = std::env::current_dir().map_err(|e| format!("failed to get curren directory: {}", e))?;
     let solve_path = |relative_path: &str| current_dir.join(relative_path);
 
-    let cpp_project_path = solve_path("res/cpp_project");
-    let cmake_build_path = solve_path("res/cpp_project/build");
-    let cpp_project_include_path = solve_path("res/cpp_project/src");
-    let clang_path = which::which("clang++").map_err(|e| format!("failed to get clang++ path: {}", e))?;
+    let cpp_project_path          = solve_path("res/cpp_project");
+    let cmake_build_path          = solve_path("res/cpp_project/build");
+
+    let compilation_database_path = solve_path("res/cpp_project/build/compile_commands.json");
 
     let cmake_output = std::process::Command::new("cmake")
         .arg("-S").arg(cpp_project_path.clone())
         .arg("-B").arg(cmake_build_path.clone())
         .arg("-D").arg("CMAKE_CXX_COMPILER=clang++")
+        .arg("-G").arg("Ninja")
         .output()
         .map_err(|e| format!("cmake exeuction failed: {}", e))?;
 
@@ -28,52 +28,44 @@ fn test_get_entries() -> Result<(), String> {
 
     let pattern = solve_path("**/*.h").to_str().unwrap().into();
 
-    let command_table = build_command_table(std::path::PathBuf::from(cmake_build_path), Some(pattern))?;
+    let input_file = std::fs::File::open(compilation_database_path)
+        .map_err(|e| format!("failed to open input file '{}'", e))?;
+    let reader = std::io::BufReader::new(input_file);
+    let database: CompilationDatabase = serde_json::from_reader(reader)
+        .map_err(|e| format!("failed to load database: {}", e))?;
+    let args = database
+        .clone()
+        .into_iter()
+        .map(|e| e.skip_unnecessary_commands().get_command().clone())
+        .last()
+        .ok_or(format!("failed to extract compiler arguments"))?;
+
+    let command_table = build_command_table(database, Some(pattern))?;
     assert_eq!(command_table.get_entries(), vec![
-        &CompileCommandsTableEntry::new(
+        &CompilationDatabaseEntry::new(
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/a.h"),
-            vec![
-                format!("{}", clang_path.display()),
-                "--driver-mode=g++".into(),
-                format!("-I{}", cpp_project_include_path.display())
-            ]
+            args.clone()
         ),
-        &CompileCommandsTableEntry::new(
+        &CompilationDatabaseEntry::new(
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/b.h"),
-            vec![
-                format!("{}", clang_path.display()),
-                "--driver-mode=g++".into(),
-                format!("-I{}", cpp_project_include_path.display())
-            ]
+            args.clone()
         ),
-        &CompileCommandsTableEntry::new(
+        &CompilationDatabaseEntry::new(
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/c.h"),
-            vec![
-                format!("{}", clang_path.display()),
-                "--driver-mode=g++".into(),
-                format!("-I{}", cpp_project_include_path.display())
-            ]
+            args.clone()
         ),
-        &CompileCommandsTableEntry::new(
+        &CompilationDatabaseEntry::new(
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/d.h"),
-            vec![
-                format!("{}", clang_path.display()),
-                "--driver-mode=g++".into(),
-                format!("-I{}", cpp_project_include_path.display())
-            ]
+            args.clone()
         ),
-        &CompileCommandsTableEntry::new(
+        &CompilationDatabaseEntry::new(
             solve_path("res/cpp_project/build"),
             solve_path("res/cpp_project/src/main.cpp"),
-            vec![
-                format!("{}", clang_path.display()),
-                "--driver-mode=g++".into(),
-                format!("-I{}", cpp_project_include_path.display())
-            ]
+            args.clone()
         ),
     ]);
     Ok(())

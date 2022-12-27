@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  workflow_dispatch
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+        clang:
+          - "14.0"
+        rust:
+          - "1.40.0"
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            executable: header_completer
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            executable: header_completer.exe
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: ${{ matrix.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - name: Cargo Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
+      - name: Zip Release
+        uses: TheDoctor0/zip-release@0.6.2
+        with:
+          type: 'zip'
+          filename: 'header_completer-${{ matrix.target }}'
+          path: target/${{ matrix.target }}/release/${{ matrix.executable }}
+      - name: Upload Zip
+        uses: actions/upload-artifact@v1
+        with:
+          name: build-${{ matrix.target }}
+          path: header_completer-${{ matrix.target }}.zip
+  create-release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: "1.40.0"
+      - name: Get Version from Cargo.toml
+        id: get-version
+        run: echo "version=$(cargo read-manifest | jq -r .version)" >> $GITHUB_OUTPUT
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get-version.outputs.version }}
+          release_name: Release ${{ steps.get-version.outputs.version }}
+          draft: false
+          prerelease: false
+      - name: Save Release Upload URL
+        run: echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
+      - name: Upload Release Upload URL as Artifact 
+        uses: actions/upload-artifact@v1
+        with:
+          name: release_upload_url
+          path: release_upload_url.txt
+  upload-release:
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Release Upload URL as Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: release_upload_url
+      - name: Get Upload URL from Artifact
+        id: upload-url
+        run: echo "url=$(cat release_upload_url/release_upload_url.txt)" >> $GITHUB_OUTPUT
+      - name: Download Build Output as Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: build-${{ matrix.target }}
+      - name: Upload assets
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.upload-url.outputs.url }}
+          asset_path: ./build-${{ matrix.target }}/header_completer-${{ matrix.target }}.zip
+          asset_name: header_completer-${{ matrix.target }}.zip
+          asset_content_type: application/zip

@@ -2,14 +2,18 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+/// An application for completing header file entries of C/C++ compilation database
 #[derive(clap::Parser)]
 struct Cli {
+    /// input compilation database file path
     #[arg(short, long)]
     input: PathBuf,
 
+    /// output compilation database file path
     #[arg(short, long)]
     output: PathBuf,
 
+    /// glob patern to filter the header file paths to complete
     #[arg(short, long)]
     pattern: Option<String>
 }

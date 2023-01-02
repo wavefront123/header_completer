@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::compilation_database::{CompilationDatabase, CompilationDatabaseEntry};
+use crate::{compilation_database::{CompilationDatabase, CompilationDatabaseEntry}, error::Error};
 
 use super::command_table::CompileCommandsTable;
 
@@ -9,11 +9,11 @@ pub struct Context<'c> {
 }
 
 impl<'c> Context<'c> {
-    pub fn new(index: &'c clang::Index) -> Result<Self, String> {
-        Ok(Self { index })
+    pub fn new(index: &'c clang::Index) -> Self {
+        Self { index }
     }
 
-    pub fn build_command_table(&self, database: CompilationDatabase) -> Result<CompileCommandsTable, String> {
+    pub fn build_command_table(&self, database: CompilationDatabase) -> Result<CompileCommandsTable, Error> {
         let mut compile_commands_table = CompileCommandsTable::new();
 
         for entry in database {
@@ -24,7 +24,7 @@ impl<'c> Context<'c> {
         Ok(compile_commands_table)
     }
 
-    pub fn complete(&self, command_table: &CompileCommandsTable, pattern: Option<String>) -> Result<CompileCommandsTable, String> {
+    pub fn complete(&self, command_table: &CompileCommandsTable, pattern: Option<String>) -> Result<CompileCommandsTable, Error> {
         let pattern = Self::create_glob_pattern(pattern)?;
         let mut completed_command_table = command_table.clone();
         for entry in command_table.get_entries() {
@@ -48,7 +48,7 @@ impl<'c> Context<'c> {
         Ok(completed_command_table)
     }
 
-    fn create_glob_pattern(pattern: Option<String>) -> Result<Option<glob::Pattern>, String> {
+    fn create_glob_pattern(pattern: Option<String>) -> Result<Option<glob::Pattern>, Error> {
         match pattern {
             Some(pattern) => {
                 Ok(Some(glob::Pattern::new(pattern.as_str()).map_err(|e| e.to_string())?))
@@ -57,7 +57,7 @@ impl<'c> Context<'c> {
         }
     }
 
-    fn parse(&self, file_path: PathBuf, args: Vec<String>) -> Result<clang::TranslationUnit, String> {
+    fn parse(&self, file_path: PathBuf, args: Vec<String>) -> Result<clang::TranslationUnit, Error> {
         let args: Vec<String> = args
             .into_iter()
             .filter(|arg| *arg != file_path.to_str().unwrap())
@@ -70,7 +70,7 @@ impl<'c> Context<'c> {
             .skip_function_bodies(true)
             .arguments(&args);
             
-        parser.parse().map_err(|e| format!("failed to parse: {}", e))
+        parser.parse().map_err(Error::from)
     }
 
     fn extract_includes(entity: clang::Entity) -> Vec<PathBuf> {

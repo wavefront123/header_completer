@@ -1,8 +1,8 @@
-use header_completer::{build_command_table, compilation_database::{CompilationDatabaseEntry, CompilationDatabase}};
+use header_completer::{build_command_table, compilation_database::{CompilationDatabaseEntry, CompilationDatabase}, error::Error};
 
 
 #[test]
-fn test_get_entries() -> Result<(), String> {
+fn test_get_entries() -> Result<(), Error> {
     let current_dir = std::env::current_dir().map_err(|e| format!("failed to get curren directory: {}", e))?;
     let solve_path = |relative_path: &str| current_dir.join(relative_path);
 

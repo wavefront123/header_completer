@@ -18,7 +18,7 @@ struct Cli {
     pattern: Option<String>
 }
 
-fn main() -> Result<(), String> {
+fn main() -> Result<(), header_completer::error::Error> {
     let cli = Cli::parse();
 
     let input_file = std::fs::File::open(cli.input)

@@ -30,9 +30,9 @@ impl<'c> Context<'c> {
         for entry in command_table.get_entries() {
             let directory = entry.get_directory();
             let file = entry.get_file();
-            let command = entry.get_command();
+            let commands = entry.get_commands();
 
-            let translation_unit = self.parse(file.clone(), command.split(" ").map(String::from).collect())?;
+            let translation_unit = self.parse(file.clone(), commands.clone())?;
             let include_file_paths = Self::extract_includes(translation_unit.get_entity());
             for include in include_file_paths {
                 if let Some(pattern) = &pattern {
@@ -40,7 +40,7 @@ impl<'c> Context<'c> {
                         continue;
                     }
                 }
-                let entry = CompilationDatabaseEntry::new(directory.clone(), include.clone(), command.clone());
+                let entry = CompilationDatabaseEntry::new(directory.clone(), include.clone(), commands.clone());
                 let entry = entry.skip_unnecessary_commands();
                 completed_command_table.insert(include, entry);
             }

@@ -1,4 +1,4 @@
-use header_completer::{build_command_table, compilation_database::{CompilationDatabaseEntry, CompilationDatabase}, error::Error};
+use header_completer::{build_command_table, compilation_database::{CompilationDatabaseEntry, CompilationDatabaseForDeserialize, CompilationDatabase}, error::Error};
 
 
 #[test]
@@ -31,12 +31,13 @@ fn test_get_entries() -> Result<(), Error> {
     let input_file = std::fs::File::open(compilation_database_path)
         .map_err(|e| format!("failed to open input file '{}'", e))?;
     let reader = std::io::BufReader::new(input_file);
-    let database: CompilationDatabase = serde_json::from_reader(reader)
+    let database: CompilationDatabaseForDeserialize = serde_json::from_reader(reader)
         .map_err(|e| format!("failed to load database: {}", e))?;
+    let database: CompilationDatabase = database.iter().map(|v| v.to_entry()).collect();
     let args = database
         .clone()
         .into_iter()
-        .map(|e| e.skip_unnecessary_commands().get_command().clone())
+        .map(|e| e.skip_unnecessary_commands().get_commands().clone())
         .last()
         .ok_or(format!("failed to extract compiler arguments"))?;
 

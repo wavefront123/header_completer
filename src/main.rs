@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+use header_completer::compilation_database::{CompilationDatabaseForDeserialize, CompilationDatabaseEntryForDeserialize};
 
 /// An application for completing header file entries of C/C++ compilation database
 #[derive(clap::Parser)]
@@ -24,8 +25,9 @@ fn main() -> Result<(), header_completer::error::Error> {
     let input_file = std::fs::File::open(cli.input)
         .map_err(|e| format!("failed to open input file '{}'", e))?;
     let reader = std::io::BufReader::new(input_file);
-    let database = serde_json::from_reader(reader)
+    let database: CompilationDatabaseForDeserialize = serde_json::from_reader(reader)
         .map_err(|e| format!("failed to load database: {}", e))?;
+    let database = database.iter().map(|v| v.to_entry()).collect();
 
     let command_table = header_completer::build_command_table(database, cli.pattern)?;
     
@@ -36,7 +38,7 @@ fn main() -> Result<(), header_completer::error::Error> {
         .open(cli.output)
         .map_err(|e| format!("failed to open output file '{}'", e))?;
     let writer = std::io::BufWriter::new(output_file);
-    serde_json::to_writer_pretty(writer, &command_table.get_entries())
+    serde_json::to_writer_pretty(writer, &command_table.get_entries().into_iter().map(CompilationDatabaseEntryForDeserialize::from_entry).collect::<Vec<_>>())
         .map_err(|e| format!("failed to save database: {}", e))?;
 
     Ok(())

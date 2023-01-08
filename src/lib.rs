@@ -8,7 +8,10 @@ pub mod compilation_database;
 pub mod context;
 pub mod error;
 
-pub fn build_command_table(database: CompilationDatabase, completion_pattern: Option<String>) -> Result<CompileCommandsTable, Error> {
+pub fn build_command_table(
+    database: CompilationDatabase,
+    completion_pattern: Option<String>,
+) -> Result<CompileCommandsTable, Error> {
     let clang = clang::Clang::new()?;
     let index = clang::Index::new(&clang, false, false);
 

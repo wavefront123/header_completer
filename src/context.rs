@@ -1,11 +1,14 @@
 use std::path::PathBuf;
 
-use crate::{compilation_database::{CompilationDatabase, CompilationDatabaseEntry}, error::Error};
+use crate::{
+    compilation_database::{CompilationDatabase, CompilationDatabaseEntry},
+    error::Error,
+};
 
 use super::command_table::CompileCommandsTable;
 
 pub struct Context<'c> {
-    index: &'c clang::Index<'c>
+    index: &'c clang::Index<'c>,
 }
 
 impl<'c> Context<'c> {
@@ -13,7 +16,10 @@ impl<'c> Context<'c> {
         Self { index }
     }
 
-    pub fn build_command_table(&self, database: CompilationDatabase) -> Result<CompileCommandsTable, Error> {
+    pub fn build_command_table(
+        &self,
+        database: CompilationDatabase,
+    ) -> Result<CompileCommandsTable, Error> {
         let mut compile_commands_table = CompileCommandsTable::new();
 
         for entry in database {
@@ -24,7 +30,11 @@ impl<'c> Context<'c> {
         Ok(compile_commands_table)
     }
 
-    pub fn complete(&self, command_table: &CompileCommandsTable, pattern: Option<String>) -> Result<CompileCommandsTable, Error> {
+    pub fn complete(
+        &self,
+        command_table: &CompileCommandsTable,
+        pattern: Option<String>,
+    ) -> Result<CompileCommandsTable, Error> {
         let pattern = Self::create_glob_pattern(pattern)?;
         let mut completed_command_table = command_table.clone();
         for entry in command_table.get_entries() {
@@ -40,7 +50,11 @@ impl<'c> Context<'c> {
                         continue;
                     }
                 }
-                let entry = CompilationDatabaseEntry::new(directory.clone(), include.clone(), commands.clone());
+                let entry = CompilationDatabaseEntry::new(
+                    directory.clone(),
+                    include.clone(),
+                    commands.clone(),
+                );
                 let entry = entry.skip_unnecessary_commands();
                 completed_command_table.insert(include, entry);
             }
@@ -50,14 +64,18 @@ impl<'c> Context<'c> {
 
     fn create_glob_pattern(pattern: Option<String>) -> Result<Option<glob::Pattern>, Error> {
         match pattern {
-            Some(pattern) => {
-                Ok(Some(glob::Pattern::new(pattern.as_str()).map_err(|e| e.to_string())?))
-            },
-            None => Ok(None)
+            Some(pattern) => Ok(Some(
+                glob::Pattern::new(pattern.as_str()).map_err(|e| e.to_string())?,
+            )),
+            None => Ok(None),
         }
     }
 
-    fn parse(&self, file_path: PathBuf, args: Vec<String>) -> Result<clang::TranslationUnit, Error> {
+    fn parse(
+        &self,
+        file_path: PathBuf,
+        args: Vec<String>,
+    ) -> Result<clang::TranslationUnit, Error> {
         let args: Vec<String> = args
             .into_iter()
             .filter(|arg| *arg != file_path.to_str().unwrap())
@@ -69,19 +87,18 @@ impl<'c> Context<'c> {
             .keep_going(true)
             .skip_function_bodies(true)
             .arguments(&args);
-            
+
         parser.parse().map_err(Error::from)
     }
 
     fn extract_includes(entity: clang::Entity) -> Vec<PathBuf> {
         let mut included_file_paths = vec![];
 
-        for child in entity.get_children()
-        {
+        for child in entity.get_children() {
             match child.get_kind() {
                 clang::EntityKind::InclusionDirective => {
                     included_file_paths.push(child.get_file().unwrap().get_path());
-                },
+                }
                 _ => {}
             }
         }

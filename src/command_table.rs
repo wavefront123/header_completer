@@ -4,21 +4,23 @@ use crate::compilation_database::CompilationDatabaseEntry;
 
 #[derive(Clone)]
 pub struct CompileCommandsTable {
-    table: HashMap<PathBuf, Vec<CompilationDatabaseEntry>>
+    table: HashMap<PathBuf, Vec<CompilationDatabaseEntry>>,
 }
 
 impl CompileCommandsTable {
     pub fn new() -> Self {
         Self {
-            table: HashMap::new()
+            table: HashMap::new(),
         }
     }
 
-    pub fn insert(&mut self, path: PathBuf, entry: CompilationDatabaseEntry) {
+    pub fn insert(
+        &mut self,
+        path: PathBuf,
+        entry: CompilationDatabaseEntry,
+    ) {
         match self.table.get_mut(&path) {
-            Some(entries) => {
-                entries.push(entry)
-            },
+            Some(entries) => entries.push(entry),
             None => {
                 let entries = vec![entry];
                 let prev_entry = self.table.insert(path, entries);

@@ -3,6 +3,7 @@ use header_completer::{
     compilation_database::{CompilationDatabase, CompilationDatabaseEntry},
     complete,
     error::Error,
+    CompletionConfig,
 };
 
 #[test]
@@ -35,7 +36,10 @@ fn test_get_entries() -> Result<(), Error> {
         String::from_utf8(cmake_output.stderr).expect("failed to read stderr of cmake")
     );
 
-    let pattern = solve_path("**/*.h").to_str().unwrap().into();
+    let config = CompletionConfig {
+        pattern: Some(solve_path("**/*.h").to_str().unwrap().into()),
+        thread_count: 10,
+    };
 
     let input_file = std::fs::File::open(compilation_database_path)
         .map_err(|e| format!("failed to open input file '{}'", e))?;
@@ -50,7 +54,7 @@ fn test_get_entries() -> Result<(), Error> {
             .ok_or(format!("failed to extract compiler arguments"))?,
     );
 
-    let database = complete(database, Some(pattern))?;
+    let database = complete(database, config)?;
     assert_eq!(
         database.entries().collect::<Vec<_>>(),
         vec![

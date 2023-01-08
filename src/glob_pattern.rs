@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::error::Error;
 
+#[derive(Clone)]
 pub struct GlobPattern {
     pattern: Option<glob::Pattern>,
 }

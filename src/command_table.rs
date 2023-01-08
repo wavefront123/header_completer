@@ -54,6 +54,43 @@ impl CompileCommandsTable {
         self.table
             .push(CompileCommandsTableEntry::new(directory, file, command));
     }
+
+    pub fn split(
+        self,
+        n: usize,
+    ) -> Vec<Self> {
+        let mut result = vec![];
+
+        let len = self.table.len();
+
+        for i in 0..n {
+            let mut table = Vec::new();
+
+            let begin = len * (i + 0) / n;
+            let end = len * (i + 1) / n;
+
+            for entry in &self.table[begin..end] {
+                table.push(CompileCommandsTableEntry::new(
+                    entry.directory(),
+                    entry.file(),
+                    entry.command(),
+                ));
+            }
+
+            result.push(Self { table });
+        }
+
+        result
+    }
+
+    pub fn merge<I: Iterator<Item = Self>>(selves: I) -> Self {
+        let mut table = vec![];
+        for s in selves {
+            table.extend(s.table);
+        }
+
+        Self { table }
+    }
 }
 
 impl CompileCommandsTableEntry {

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use header_completer::compilation_database::CompilationDatabase;
+use header_completer::{compilation_database::CompilationDatabase, CompletionConfig};
 
 /// An application for completing header file entries of C/C++ compilation database
 #[derive(clap::Parser)]
@@ -17,6 +17,10 @@ struct Cli {
     /// glob patern to filter the header file paths to complete
     #[arg(short, long)]
     pattern: Option<String>,
+
+    /// thread count to complete
+    #[arg(short, long, default_value = "1")]
+    thread_count: usize,
 }
 
 fn main() -> Result<(), header_completer::error::Error> {
@@ -28,7 +32,11 @@ fn main() -> Result<(), header_completer::error::Error> {
     let database: CompilationDatabase =
         serde_json::from_reader(reader).map_err(|e| format!("failed to load database: {}", e))?;
 
-    let database = header_completer::complete(database, cli.pattern)?;
+    let config = CompletionConfig {
+        pattern: cli.pattern,
+        thread_count: cli.thread_count,
+    };
+    let database = header_completer::complete(database, config)?;
 
     let output_file = std::fs::OpenOptions::new()
         .write(true)

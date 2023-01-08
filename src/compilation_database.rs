@@ -97,9 +97,12 @@ impl<'de> Deserialize<'de> for CompilationDatabase {
             .into_iter()
             .map(|e| {
                 let arguments = e.arguments;
-                let commands = e
-                    .command
-                    .map(|cmd| cmd.split(" ").map(|arg| arg.to_string()).collect());
+                let commands = e.command.map(|cmd| {
+                    cmd.split(" ")
+                        .filter(|arg| !arg.is_empty())
+                        .map(|arg| arg.to_string())
+                        .collect()
+                });
                 CompilationDatabaseEntry {
                     file: e.file,
                     directory: e.directory,

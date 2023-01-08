@@ -1,13 +1,13 @@
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 use crate::compilation_database::{CompilationDatabase, CompilationDatabaseEntry};
 
 #[derive(Clone)]
 pub struct CompileCommandsTable {
-    table: Vec<CompileCommandsTableEntry>,
+    table: HashSet<CompileCommandsTableEntry>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct CompileCommandsTableEntry {
     directory: PathBuf,
     file: PathBuf,
@@ -16,10 +16,10 @@ pub struct CompileCommandsTableEntry {
 
 impl CompileCommandsTable {
     pub fn from_database(database: CompilationDatabase) -> Self {
-        let mut table = Vec::new();
+        let mut table = HashSet::new();
 
         for entry in database.entries() {
-            table.push(CompileCommandsTableEntry::new(
+            table.insert(CompileCommandsTableEntry::new(
                 entry.directory(),
                 entry.file(),
                 entry.command(),
@@ -52,7 +52,7 @@ impl CompileCommandsTable {
         command: &Vec<String>,
     ) {
         self.table
-            .push(CompileCommandsTableEntry::new(directory, file, command));
+            .insert(CompileCommandsTableEntry::new(directory, file, command));
     }
 
     pub fn split(
@@ -60,17 +60,18 @@ impl CompileCommandsTable {
         n: usize,
     ) -> Vec<Self> {
         let mut result = vec![];
+        let entries: Vec<_> = self.entries().into_iter().collect();
 
         let len = self.table.len();
 
         for i in 0..n {
-            let mut table = Vec::new();
+            let mut table = HashSet::new();
 
             let begin = len * (i + 0) / n;
             let end = len * (i + 1) / n;
 
-            for entry in &self.table[begin..end] {
-                table.push(CompileCommandsTableEntry::new(
+            for entry in &entries[begin..end] {
+                table.insert(CompileCommandsTableEntry::new(
                     entry.directory(),
                     entry.file(),
                     entry.command(),
@@ -84,7 +85,7 @@ impl CompileCommandsTable {
     }
 
     pub fn merge<I: Iterator<Item = Self>>(selves: I) -> Self {
-        let mut table = vec![];
+        let mut table = HashSet::new();
         for s in selves {
             table.extend(s.table);
         }

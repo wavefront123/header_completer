@@ -36,7 +36,7 @@ pub fn complete(
                 let entry_count = entry_count.clone();
                 s.spawn(move || -> Result<CompileCommandsTable, Error> {
                     let clang = clang_holder.unwrap();
-                    let index = clang::Index::new(&clang, false, false);
+                    let index = clang::Index::new(clang, false, false);
                     let extractor = IncludeExtractor::new(&index);
 
                     let mut completed_command_table = command_table.clone();

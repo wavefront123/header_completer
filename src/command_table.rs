@@ -1,4 +1,7 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use crate::compilation_database::{CompilationDatabase, CompilationDatabaseEntry};
 
@@ -47,8 +50,8 @@ impl CompileCommandsTable {
 
     pub fn insert(
         &mut self,
-        directory: &PathBuf,
-        file: &PathBuf,
+        directory: &Path,
+        file: &Path,
         command: &Vec<String>,
     ) {
         self.table
@@ -67,7 +70,7 @@ impl CompileCommandsTable {
         for i in 0..n {
             let mut table = HashSet::new();
 
-            let begin = len * (i + 0) / n;
+            let begin = len * i / n;
             let end = len * (i + 1) / n;
 
             for entry in &entries[begin..end] {
@@ -96,13 +99,13 @@ impl CompileCommandsTable {
 
 impl CompileCommandsTableEntry {
     pub fn new(
-        directory: &PathBuf,
-        file: &PathBuf,
+        directory: &Path,
+        file: &Path,
         command: &Vec<String>,
     ) -> Self {
         Self {
-            directory: directory.clone(),
-            file: file.clone(),
+            directory: directory.to_path_buf(),
+            file: file.to_path_buf(),
             command: Self::skip_unnecessary_commands(command),
         }
     }

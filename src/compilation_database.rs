@@ -1,4 +1,8 @@
-use std::{cmp::Ordering, path::PathBuf, slice::Iter};
+use std::{
+    cmp::Ordering,
+    path::{Path, PathBuf},
+    slice::Iter,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +10,7 @@ pub struct CompilationDatabase {
     entries: Vec<CompilationDatabaseEntry>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompilationDatabaseEntry {
     directory: PathBuf,
     file: PathBuf,
@@ -30,7 +34,7 @@ struct CompilationDatabaseEntryForDeserialize {
 
 impl CompilationDatabase {
     pub fn new(mut entries: Vec<CompilationDatabaseEntry>) -> Self {
-        entries.sort_by(|a, b| a.cmp(b));
+        entries.sort();
         Self { entries }
     }
 
@@ -41,14 +45,14 @@ impl CompilationDatabase {
 
 impl CompilationDatabaseEntry {
     pub fn new(
-        directory: &PathBuf,
-        file: &PathBuf,
-        command: &Vec<String>,
+        directory: &Path,
+        file: &Path,
+        command: &[String],
     ) -> Self {
         Self {
-            directory: directory.clone(),
-            file: file.clone(),
-            command: command.clone(),
+            directory: directory.to_path_buf(),
+            file: file.to_path_buf(),
+            command: command.to_owned(),
         }
     }
 
@@ -98,7 +102,7 @@ impl<'de> Deserialize<'de> for CompilationDatabase {
             .map(|e| {
                 let arguments = e.arguments;
                 let commands = e.command.map(|cmd| {
-                    cmd.split(" ")
+                    cmd.split(' ')
                         .filter(|arg| !arg.is_empty())
                         .map(|arg| arg.to_string())
                         .collect()
@@ -122,7 +126,7 @@ impl PartialOrd for CompilationDatabaseEntry {
         other: &Self,
     ) -> Option<Ordering> {
         let file_order = self.file.partial_cmp(&other.file);
-        let command_order = self.command().partial_cmp(&other.command());
+        let command_order = self.command().partial_cmp(other.command());
         let directory_order = self.directory.partial_cmp(&other.directory);
 
         let mut result = None;
@@ -131,5 +135,14 @@ impl PartialOrd for CompilationDatabaseEntry {
         result = result.or(directory_order);
 
         result
+    }
+}
+
+impl Ord for CompilationDatabaseEntry {
+    fn cmp(
+        &self,
+        other: &Self,
+    ) -> Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }

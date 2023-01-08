@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::error::Error;
 
@@ -13,10 +13,10 @@ impl<'c> IncludeExtractor<'c> {
 
     pub fn extract(
         &self,
-        file: &PathBuf,
-        args: &Vec<String>,
+        file: &Path,
+        args: &[String],
     ) -> Result<Vec<PathBuf>, Error> {
-        let translation_unit = self.parse(file.clone(), args.clone())?;
+        let translation_unit = self.parse(file.to_path_buf(), args.to_owned())?;
         Ok(Self::extract_includes(translation_unit.get_entity()).collect())
     }
 
@@ -29,7 +29,7 @@ impl<'c> IncludeExtractor<'c> {
             .into_iter()
             .filter(|arg| *arg != file_path.to_str().unwrap())
             .collect();
-        let mut parser = self.index.parser(file_path.clone());
+        let mut parser = self.index.parser(file_path);
         let parser = parser
             .detailed_preprocessing_record(true)
             .ignore_non_errors_from_included_files(true)

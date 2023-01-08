@@ -19,9 +19,9 @@ fn test_get_entries() -> Result<(), Error> {
 
     let cmake_output = std::process::Command::new("cmake")
         .arg("-S")
-        .arg(cpp_project_path.clone())
+        .arg(cpp_project_path)
         .arg("-B")
-        .arg(cmake_build_path.clone())
+        .arg(cmake_build_path)
         .arg("-D")
         .arg("CMAKE_CXX_COMPILER=clang++")
         .arg("-G")
@@ -51,7 +51,7 @@ fn test_get_entries() -> Result<(), Error> {
             .entries()
             .map(|e| e.command())
             .last()
-            .ok_or(format!("failed to extract compiler arguments"))?,
+            .ok_or("failed to extract compiler arguments".to_string())?,
     );
 
     let database = complete(database, config)?;

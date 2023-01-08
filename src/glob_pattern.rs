@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::error::Error;
 
@@ -19,7 +19,7 @@ impl GlobPattern {
 
     pub fn matches(
         &self,
-        path: &PathBuf,
+        path: &Path,
     ) -> bool {
         match (&self.pattern, path.to_str()) {
             (Some(pattern), Some(path)) => pattern.matches(path),

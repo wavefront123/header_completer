@@ -95,9 +95,9 @@ impl<'c> Context<'c> {
         let mut included_file_paths = vec![];
 
         for child in entity.get_children() {
-            match child.get_kind() {
-                clang::EntityKind::InclusionDirective => {
-                    included_file_paths.push(child.get_file().unwrap().get_path());
+            match (child.get_kind(), child.get_file()) {
+                (clang::EntityKind::InclusionDirective, Some(file)) => {
+                    included_file_paths.push(file.get_path());
                 }
                 _ => {}
             }

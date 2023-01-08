@@ -1,8 +1,7 @@
 use header_completer::{
-    build_command_table,
-    compilation_database::{
-        CompilationDatabase, CompilationDatabaseEntry, CompilationDatabaseForDeserialize,
-    },
+    command_table::CompileCommandsTableEntry,
+    compilation_database::{CompilationDatabase, CompilationDatabaseEntry},
+    complete,
     error::Error,
 };
 
@@ -41,44 +40,44 @@ fn test_get_entries() -> Result<(), Error> {
     let input_file = std::fs::File::open(compilation_database_path)
         .map_err(|e| format!("failed to open input file '{}'", e))?;
     let reader = std::io::BufReader::new(input_file);
-    let database: CompilationDatabaseForDeserialize =
+    let database: CompilationDatabase =
         serde_json::from_reader(reader).map_err(|e| format!("failed to load database: {}", e))?;
-    let database: CompilationDatabase = database.iter().map(|v| v.to_entry()).collect();
-    let args = database
-        .clone()
-        .into_iter()
-        .map(|e| e.skip_unnecessary_commands().get_commands().clone())
-        .last()
-        .ok_or(format!("failed to extract compiler arguments"))?;
+    let args = CompileCommandsTableEntry::skip_unnecessary_commands(
+        database
+            .entries()
+            .map(|e| e.command())
+            .last()
+            .ok_or(format!("failed to extract compiler arguments"))?,
+    );
 
-    let command_table = build_command_table(database, Some(pattern))?;
+    let database = complete(database, Some(pattern))?;
     assert_eq!(
-        command_table.get_entries(),
+        database.entries().collect::<Vec<_>>(),
         vec![
             &CompilationDatabaseEntry::new(
-                solve_path("res/cpp_project/build"),
-                solve_path("res/cpp_project/src/a.h"),
-                args.clone()
+                &solve_path("res/cpp_project/build"),
+                &solve_path("res/cpp_project/src/a.h"),
+                &args
             ),
             &CompilationDatabaseEntry::new(
-                solve_path("res/cpp_project/build"),
-                solve_path("res/cpp_project/src/b.h"),
-                args.clone()
+                &solve_path("res/cpp_project/build"),
+                &solve_path("res/cpp_project/src/b.h"),
+                &args
             ),
             &CompilationDatabaseEntry::new(
-                solve_path("res/cpp_project/build"),
-                solve_path("res/cpp_project/src/c.h"),
-                args.clone()
+                &solve_path("res/cpp_project/build"),
+                &solve_path("res/cpp_project/src/c.h"),
+                &args
             ),
             &CompilationDatabaseEntry::new(
-                solve_path("res/cpp_project/build"),
-                solve_path("res/cpp_project/src/d.h"),
-                args.clone()
+                &solve_path("res/cpp_project/build"),
+                &solve_path("res/cpp_project/src/d.h"),
+                &args
             ),
             &CompilationDatabaseEntry::new(
-                solve_path("res/cpp_project/build"),
-                solve_path("res/cpp_project/src/main.cpp"),
-                args.clone()
+                &solve_path("res/cpp_project/build"),
+                &solve_path("res/cpp_project/src/main.cpp"),
+                &args
             ),
         ]
     );

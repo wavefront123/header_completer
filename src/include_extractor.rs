@@ -25,9 +25,13 @@ impl<'c> IncludeExtractor<'c> {
         file_path: PathBuf,
         args: Vec<String>,
     ) -> Result<clang::TranslationUnit, Error> {
+        let file_path_str = file_path.to_str().ok_or(format!(
+            "could not convert file path '{}' into UTF-8.",
+            file_path.display()
+        ))?;
         let args: Vec<String> = args
             .into_iter()
-            .filter(|arg| *arg != file_path.to_str().unwrap())
+            .filter(|arg| *arg != file_path_str)
             .collect();
         let mut parser = self.index.parser(file_path);
         let parser = parser
@@ -37,7 +41,9 @@ impl<'c> IncludeExtractor<'c> {
             .skip_function_bodies(true)
             .arguments(&args);
 
-        parser.parse().map_err(Error::from)
+        let translation_unit = parser.parse()?;
+
+        Ok(translation_unit)
     }
 
     fn extract_includes(entity: clang::Entity) -> impl Iterator<Item = PathBuf> + '_ {

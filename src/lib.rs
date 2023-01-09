@@ -35,14 +35,18 @@ pub fn complete(
                 let clang_holder = clang_holder.clone();
                 let entry_count = entry_count.clone();
                 s.spawn(move || -> Result<CompileCommandsTable, Error> {
-                    let clang = clang_holder.unwrap();
+                    let clang = clang_holder
+                        .clang()
+                        .ok_or_else(|| "failed to receive clang context".to_string())?;
                     let index = clang::Index::new(clang, false, false);
                     let extractor = IncludeExtractor::new(&index);
 
                     let mut completed_command_table = command_table.clone();
                     for entry in command_table.entries() {
                         {
-                            let mut lock = entry_count.lock().unwrap();
+                            let mut lock = entry_count
+                                .lock()
+                                .map_err(|e| format!("failed to lock counter ({}).", e))?;
                             println!(
                                 "[{} / {}] completing {}...",
                                 *lock,
@@ -68,7 +72,11 @@ pub fn complete(
 
         let mut completed_command_tables = vec![];
         for handle in handles {
-            completed_command_tables.push(handle.join().unwrap()?);
+            completed_command_tables.push(
+                handle
+                    .join()
+                    .map_err(|_| "some error in working thread".to_string())??,
+            );
         }
         Ok(CompileCommandsTable::merge(
             completed_command_tables.into_iter(),
@@ -101,7 +109,7 @@ impl UnsafeClangHolder {
         }
     }
 
-    pub fn unwrap(&self) -> &clang::Clang {
-        unsafe { self.ptr.as_ref().unwrap() }
+    pub fn clang(&self) -> Option<&clang::Clang> {
+        unsafe { self.ptr.as_ref() }
     }
 }

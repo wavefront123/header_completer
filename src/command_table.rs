@@ -52,7 +52,7 @@ impl CompileCommandsTable {
         &mut self,
         directory: &Path,
         file: &Path,
-        command: &Vec<String>,
+        command: &[String],
     ) {
         self.table
             .insert(CompileCommandsTableEntry::new(directory, file, command));
@@ -101,7 +101,7 @@ impl CompileCommandsTableEntry {
     pub fn new(
         directory: &Path,
         file: &Path,
-        command: &Vec<String>,
+        command: &[String],
     ) -> Self {
         Self {
             directory: directory.to_path_buf(),
@@ -122,21 +122,19 @@ impl CompileCommandsTableEntry {
         &self.command
     }
 
-    pub fn skip_unnecessary_commands(command: &Vec<String>) -> Vec<String> {
+    pub fn skip_unnecessary_commands(command: &[String]) -> Vec<String> {
         let mut result = vec![];
-        let mut pos = 0;
-        while pos < command.len() {
-            let command = command.get(pos).unwrap();
-            match command.as_str() {
+        let mut iter = command.iter();
+        while let Some(arg) = iter.next() {
+            match arg.as_str() {
                 "-c" | "-o" => {
-                    // skip
-                    pos += 1;
+                    // skip next argument
+                    iter.next();
                 }
                 _ => {
-                    result.push(command.clone());
+                    result.push(arg.clone());
                 }
             }
-            pos += 1;
         }
         result
     }

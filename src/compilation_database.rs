@@ -143,6 +143,21 @@ impl Ord for CompilationDatabaseEntry {
         &self,
         other: &Self,
     ) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        let file_order = self.file.cmp(&other.file);
+        if !file_order.is_eq() {
+            return file_order;
+        }
+
+        let command_order = self.command().cmp(other.command());
+        if !command_order.is_eq() {
+            return command_order;
+        }
+
+        let directory_order = self.directory().cmp(other.directory());
+        if !directory_order.is_eq() {
+            return directory_order;
+        }
+
+        Ordering::Equal
     }
 }

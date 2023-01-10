@@ -55,14 +55,23 @@ pub fn complete(
                             );
                             *lock += 1;
                         }
-                        for include in extractor.extract(entry.file(), entry.command())? {
-                            if pattern.matches(&include) {
-                                completed_command_table.insert(
-                                    entry.directory(),
-                                    &include,
-                                    entry.command(),
-                                );
+                        match extractor.extract(entry.file(), entry.command()) {
+                            Ok(includes) => {
+                                for include in includes {
+                                    if pattern.matches(&include) {
+                                        completed_command_table.insert(
+                                            entry.directory(),
+                                            &include,
+                                            entry.command(),
+                                        );
+                                    }
+                                }
                             }
+                            Err(e) => println!(
+                                "failed to complete '{}'. ({:?})",
+                                entry.file().display(),
+                                e
+                            ),
                         }
                     }
                     Ok(completed_command_table)

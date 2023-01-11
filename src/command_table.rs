@@ -3,7 +3,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::compilation_database::{CompilationDatabase, CompilationDatabaseEntry};
+use crate::{
+    compilation_database::{CompilationDatabase, CompilationDatabaseEntry},
+    glob_pattern::GlobPattern,
+};
 
 #[derive(Clone)]
 pub struct CompileCommandsTable {
@@ -56,6 +59,18 @@ impl CompileCommandsTable {
     ) {
         self.table
             .insert(CompileCommandsTableEntry::new(directory, file, command));
+    }
+
+    pub fn filter_entries(
+        self,
+        pattern: &GlobPattern,
+    ) -> Self {
+        let table = self.table;
+        let table = table
+            .into_iter()
+            .filter(|e| pattern.matches(e.file()))
+            .collect();
+        Self { table }
     }
 
     pub fn split(

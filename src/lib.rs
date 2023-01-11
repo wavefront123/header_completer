@@ -16,9 +16,11 @@ pub fn complete(
     database: CompilationDatabase,
     config: CompletionConfig,
 ) -> Result<CompilationDatabase, Error> {
-    let pattern = GlobPattern::new(config.pattern)?;
+    let input_pattern = GlobPattern::new(config.input_pattern)?;
+    let output_pattern = GlobPattern::new(config.output_pattern)?;
 
     let command_table = CompileCommandsTable::from_database(database);
+    let command_table = command_table.filter_entries(&input_pattern);
 
     let clang = clang::Clang::new()?;
     let clang_holder = Arc::new(UnsafeClangHolder::new(&clang));
@@ -31,7 +33,7 @@ pub fn complete(
             .split(config.thread_count)
             .into_iter()
             .map(|command_table| {
-                let pattern = pattern.clone();
+                let output_pattern = output_pattern.clone();
                 let clang_holder = clang_holder.clone();
                 let entry_count = entry_count.clone();
                 s.spawn(move || -> Result<CompileCommandsTable, Error> {
@@ -57,14 +59,14 @@ pub fn complete(
                         }
                         match extractor.extract(entry.file(), entry.command()) {
                             Ok(includes) => {
+                                let includes =
+                                    includes.into_iter().filter(|e| output_pattern.matches(e));
                                 for include in includes {
-                                    if pattern.matches(&include) {
-                                        completed_command_table.insert(
-                                            entry.directory(),
-                                            &include,
-                                            entry.command(),
-                                        );
-                                    }
+                                    completed_command_table.insert(
+                                        entry.directory(),
+                                        &include,
+                                        entry.command(),
+                                    );
                                 }
                             }
                             Err(e) => println!(
@@ -98,7 +100,8 @@ pub fn complete(
 }
 
 pub struct CompletionConfig {
-    pub pattern: Option<String>,
+    pub input_pattern: Option<String>,
+    pub output_pattern: Option<String>,
     pub thread_count: usize,
 }
 

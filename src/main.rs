@@ -14,9 +14,13 @@ struct Cli {
     #[arg(short, long)]
     output: PathBuf,
 
-    /// glob patern to filter the header file paths to complete
-    #[arg(short, long)]
-    pattern: Option<String>,
+    /// glob patern to read
+    #[arg(long)]
+    input_pattern: Option<String>,
+
+    /// glob patern to write
+    #[arg(long)]
+    output_pattern: Option<String>,
 
     /// thread count to complete
     #[arg(short, long, default_value = "1")]
@@ -33,7 +37,8 @@ fn main() -> Result<(), header_completer::error::Error> {
         serde_json::from_reader(reader).map_err(|e| format!("failed to load database: {}", e))?;
 
     let config = CompletionConfig {
-        pattern: cli.pattern,
+        input_pattern: cli.input_pattern,
+        output_pattern: cli.output_pattern,
         thread_count: cli.thread_count,
     };
     let database = header_completer::complete(database, config)?;

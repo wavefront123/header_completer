@@ -37,7 +37,8 @@ fn test_get_entries() -> Result<(), Error> {
     );
 
     let config = CompletionConfig {
-        pattern: Some(solve_path("**/*.h").to_str().unwrap().into()),
+        input_pattern: None,
+        output_pattern: Some(solve_path("**/*.h").to_str().unwrap().into()),
         thread_count: 10,
     };
 

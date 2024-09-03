@@ -93,14 +93,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Upload URL as Artifact
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.7
         with:
           name: release_upload_url
       - name: Get Upload URL from Artifact
         id: upload-url
         run: echo "url=$(cat release_upload_url/release_upload_url.txt)" >> $GITHUB_OUTPUT
       - name: Download Build Output as Artifact
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.7
         with:
           name: build-${{ matrix.target }}
       - name: Upload assets
